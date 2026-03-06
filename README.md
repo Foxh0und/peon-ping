@@ -6,11 +6,11 @@
 ![macOS](https://img.shields.io/badge/macOS-blue) ![WSL2](https://img.shields.io/badge/WSL2-blue) ![Linux](https://img.shields.io/badge/Linux-blue) ![Windows](https://img.shields.io/badge/Windows-blue) ![MSYS2](https://img.shields.io/badge/MSYS2-blue) ![SSH](https://img.shields.io/badge/SSH-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-![Claude Code](https://img.shields.io/badge/Claude_Code-hook-ffab01) ![Amp](https://img.shields.io/badge/Amp-adapter-ffab01) ![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-adapter-ffab01) ![GitHub Copilot](https://img.shields.io/badge/GitHub_Copilot-adapter-ffab01) ![Codex](https://img.shields.io/badge/Codex-adapter-ffab01) ![Cursor](https://img.shields.io/badge/Cursor-adapter-ffab01) ![OpenCode](https://img.shields.io/badge/OpenCode-adapter-ffab01) ![Kilo CLI](https://img.shields.io/badge/Kilo_CLI-adapter-ffab01) ![Kiro](https://img.shields.io/badge/Kiro-adapter-ffab01) ![Kimi Code](https://img.shields.io/badge/Kimi_Code-adapter-ffab01) ![Windsurf](https://img.shields.io/badge/Windsurf-adapter-ffab01) ![Antigravity](https://img.shields.io/badge/Antigravity-adapter-ffab01) ![OpenClaw](https://img.shields.io/badge/OpenClaw-adapter-ffab01)
+![Claude Code](https://img.shields.io/badge/Claude_Code-hook-ffab01) ![Amp](https://img.shields.io/badge/Amp-adapter-ffab01) ![Gemini CLI](https://img.shields.io/badge/Gemini_CLI-adapter-ffab01) ![GitHub Copilot](https://img.shields.io/badge/GitHub_Copilot-adapter-ffab01) ![Codex](https://img.shields.io/badge/Codex-adapter-ffab01) ![Cursor](https://img.shields.io/badge/Cursor-adapter-ffab01) ![OpenCode](https://img.shields.io/badge/OpenCode-adapter-ffab01) ![Kilo CLI](https://img.shields.io/badge/Kilo_CLI-adapter-ffab01) ![Kiro](https://img.shields.io/badge/Kiro-adapter-ffab01) ![Kimi Code](https://img.shields.io/badge/Kimi_Code-adapter-ffab01) ![Windsurf](https://img.shields.io/badge/Windsurf-adapter-ffab01) ![Antigravity](https://img.shields.io/badge/Antigravity-adapter-ffab01) ![OpenClaw](https://img.shields.io/badge/OpenClaw-adapter-ffab01) ![Rovo Dev CLI](https://img.shields.io/badge/Rovo_Dev_CLI-adapter-ffab01)
 
 **Game character voice lines + visual overlay notifications when your AI coding agent needs attention — or let the agent pick its own sound via MCP.**
 
-AI coding agents don't notify you when they finish or need permission. You tab away, lose focus, and waste 15 minutes getting back into flow. peon-ping fixes this with voice lines and bold on-screen banners from Warcraft, StarCraft, Portal, Zelda, and more — works with **Claude Code**, **Amp**, **GitHub Copilot**, **Codex**, **Cursor**, **OpenCode**, **Kilo CLI**, **Kiro**, **Kimi Code**, **Windsurf**, **Google Antigravity**, and any MCP client.
+AI coding agents don't notify you when they finish or need permission. You tab away, lose focus, and waste 15 minutes getting back into flow. peon-ping fixes this with voice lines and bold on-screen banners from Warcraft, StarCraft, Portal, Zelda, and more — works with **Claude Code**, **Amp**, **GitHub Copilot**, **Codex**, **Cursor**, **OpenCode**, **Kilo CLI**, **Kiro**, **Kimi Code**, **Windsurf**, **Google Antigravity**, **Rovo Dev CLI**, and any MCP client.
 
 **See it in action** &rarr; [peonping.com](https://peonping.com/)
 
@@ -451,6 +451,7 @@ peon-ping works with any agentic IDE that supports hooks. Adapters translate IDE
 | **Google Antigravity** | Adapter | `bash adapters/antigravity.sh` / `powershell adapters/antigravity.ps1` |
 | **Kimi Code** | Adapter | `bash adapters/kimi.sh --install` / `powershell adapters/kimi.ps1 -Install` ([setup](#kimi-code-setup)) |
 | **OpenClaw** | Adapter | Call `adapters/openclaw.sh <event>` (or `openclaw.ps1`) from your OpenClaw skill |
+| **Rovo Dev CLI** | Adapter | Auto-registered by `install.sh` if `~/.rovodev` exists, or add hooks to `~/.rovodev/config.yml` manually ([setup](#rovo-dev-cli-setup)) |
 
 > **Windows:** All adapters have native PowerShell (`.ps1`) versions. The Windows installer (`install.ps1`) copies them to `~/.claude/hooks/peon-ping/adapters/`. Filesystem watchers (Amp, Antigravity, Kimi) use .NET `FileSystemWatcher` instead of fswatch/inotifywait — no extra dependencies needed.
 
@@ -738,6 +739,49 @@ Create `~/.kiro/agents/peon-ping.json`:
 ```
 
 `preToolUse`/`postToolUse` are intentionally excluded — they fire on every tool call and would be extremely noisy.
+
+### Rovo Dev CLI setup
+
+A shell adapter for [Rovo Dev CLI](https://developer.atlassian.com/cloud/rovo/) (Atlassian) with full [CESP v1.0](https://github.com/PeonPing/openpeon) conformance.
+
+**Auto-setup:**
+
+If `~/.rovodev/config.yml` exists when you run `install.sh` or `peon-ping-setup`, event hooks are registered automatically.
+
+**Manual setup:**
+
+1. Ensure peon-ping is installed (`curl -fsSL https://peonping.com/install | bash`)
+
+2. Add to `~/.rovodev/config.yml`:
+
+   ```yaml
+   eventHooks:
+     events:
+       - name: on_complete
+         commands:
+           - command: bash ~/.claude/hooks/peon-ping/adapters/rovodev.sh on_complete
+       - name: on_error
+         commands:
+           - command: bash ~/.claude/hooks/peon-ping/adapters/rovodev.sh on_error
+       - name: on_tool_permission
+         commands:
+           - command: bash ~/.claude/hooks/peon-ping/adapters/rovodev.sh on_tool_permission
+   ```
+
+3. Restart Rovo Dev CLI for the hooks to take effect.
+
+**Event mapping:**
+
+- `on_complete` → Completion sound (*"Work, work."*, *"Job's done!"*)
+- `on_error` → Error sound (*"I can't do that."*, *"Son of a bitch!"*)
+- `on_tool_permission` → Permission prompt sound (*"Something need doing?"*, *"Hmm?"*)
+
+**Features:**
+
+- **Sound playback** via `afplay` (macOS), `pw-play`/`paplay`/`ffplay` (Linux) — same priority chain as the shell hook
+- **CESP event mapping** — Rovo Dev events map to standard CESP categories (`task.complete`, `task.error`, `input.required`)
+- **Desktop notifications** — large overlay banners by default, or standard notifications
+- **Debounce** — suppresses duplicate sounds from rapid completions
 
 ### Kimi Code setup
 
