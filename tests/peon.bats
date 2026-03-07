@@ -567,6 +567,19 @@ JSON
   [ "$PEON_EXIT" -eq 0 ]
 }
 
+@test "empty cwd falls back to 'codex' for codex sessions" {
+  /usr/bin/python3 -c "
+import json
+cfg = json.load(open('$TEST_DIR/config.json'))
+cfg['notification_style'] = 'standard'
+json.dump(cfg, open('$TEST_DIR/config.json', 'w'))
+"
+  run_peon '{"hook_event_name":"Stop","cwd":"","session_id":"codex-123","source":"codex","permission_mode":"default"}'
+  [ "$PEON_EXIT" -eq 0 ]
+  [ -f "$TEST_DIR/terminal_notifier.log" ]
+  grep -q "codex" "$TEST_DIR/terminal_notifier.log"
+}
+
 @test "state session_names overrides project name (set via /peon-ping-rename)" {
   /usr/bin/python3 -c "
 import json
@@ -793,6 +806,38 @@ JSON
   run bash "$PEON_SH" status
   [ "$status" -eq 0 ]
   [[ "$output" == *"active"* ]]
+}
+
+@test "status shows OpenAI Codex as detected when ~/.codex exists but adapter is not configured" {
+  FAKE_HOME="$(mktemp -d)"
+  mkdir -p "$FAKE_HOME/.codex"
+  cat > "$FAKE_HOME/.codex/config.toml" <<'TOML'
+model = "gpt-5"
+notify = ["/bin/bash", "/tmp/not-codex.sh"]
+TOML
+
+  run env HOME="$FAKE_HOME" bash "$PEON_SH" status
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"OpenAI Codex"* ]]
+  [[ "$output" == *"detected (not set up)"* ]]
+
+  rm -rf "$FAKE_HOME"
+}
+
+@test "status shows OpenAI Codex as installed when ~/.codex notify uses codex adapter" {
+  FAKE_HOME="$(mktemp -d)"
+  mkdir -p "$FAKE_HOME/.codex"
+  cat > "$FAKE_HOME/.codex/config.toml" <<'TOML'
+model = "gpt-5"
+notify = ["/bin/bash", "/some/path/adapters/codex.sh"]
+TOML
+
+  run env HOME="$FAKE_HOME" bash "$PEON_SH" status
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[x] OpenAI Codex"* ]]
+  [[ "$output" == *"(installed)"* ]]
+
+  rm -rf "$FAKE_HOME"
 }
 
 @test "paused file suppresses sound on SessionStart" {
@@ -3617,4 +3662,3 @@ json.dump(c, open('$TEST_DIR/config.json', 'w'))
   sound=$(afplay_sound)
   [[ "$sound" == *"/packs/sc_kerrigan/sounds/"* ]]
 }
-

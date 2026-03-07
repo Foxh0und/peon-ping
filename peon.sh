@@ -993,6 +993,25 @@ if os.path.isfile(gemini_settings):
     except Exception:
         ides.append(('Gemini CLI', gemini_dir, 'detected'))
 
+# OpenAI Codex: check if notify hook points to codex adapter
+codex_dir = os.environ.get('CODEX_HOME', os.path.join(home, '.codex'))
+codex_config = os.path.join(codex_dir, 'config.toml')
+if os.path.isdir(codex_dir):
+    codex_installed = False
+    if os.path.isfile(codex_config):
+        try:
+            codex_cfg_text = open(codex_config).read()
+            codex_installed = (
+                'adapters/codex.sh' in codex_cfg_text or
+                'adapters/codex.ps1' in codex_cfg_text
+            )
+        except Exception:
+            codex_installed = False
+    if codex_installed:
+        ides.append(('OpenAI Codex', codex_dir, 'installed'))
+    else:
+        ides.append(('OpenAI Codex', codex_dir, 'detected (not set up)'))
+
 if ides:
     print('peon-ping: IDEs')
     for name, path, status in ides:
@@ -3058,7 +3077,13 @@ if not project and cwd:
 if not project and cwd:
     project = cwd.rsplit('/', 1)[-1]
 if not project:
-    project = 'claude'
+    # Codex adapter can emit empty/root cwd when launched outside a workspace.
+    # Keep labels agent-specific instead of falling back to "claude".
+    _bundle = os.environ.get('__CFBundleIdentifier', '')
+    if str(session_source).lower() == 'codex' or str(session_id).startswith('codex-') or _bundle == 'com.openai.codex':
+        project = 'codex'
+    else:
+        project = 'claude'
 project = re.sub(r'[^a-zA-Z0-9 ._-]', '', project)
 
 # --- Event routing ---
